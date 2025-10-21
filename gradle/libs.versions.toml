@@ -28,6 +28,7 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 google-material = { group = "com.google.android.material", name = "material", version = "1.12.0" }
 loopj-async-http = { group = "com.loopj.android", name = "android-async-http", version = "1.4.11" }
 squareup-picasso = { group = "com.squareup.picasso", name = "picasso", version = "2.71828" }
+androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version = "1.3.2" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

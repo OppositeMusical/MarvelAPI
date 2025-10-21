@@ -1,110 +1,80 @@
 package com.example.marvelapi
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.*
+import android.util.Log
+import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.loopj.android.http.AsyncHttpClient
-import com.loopj.android.http.JsonHttpResponseHandler
-import com.squareup.picasso.Picasso
+import com.loopj.android.http.AsyncHttpResponseHandler
 import cz.msebera.android.httpclient.Header
 import org.json.JSONObject
 import java.math.BigInteger
 import java.security.MessageDigest
-import kotlin.random.Random
 
 class MainActivity : AppCompatActivity() {
 
-    companion object {
-        private val BASE_URL = "https://gateway.marvel.com/v1/public/characters"
-        private val PUBLIC_KEY = "e5a7bf5a057dbd9bb3d478fc4519e3ec"
-        private val PRIVATE_KEY = "9236c67e8af64cea1a527644d36fbc53dce51520"
-    }
-    private lateinit var heroImage: ImageView
-    private lateinit var heroName: TextView
-    private lateinit var heroDescription: TextView
-    private lateinit var btnFetch: Button
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var heroAdapter: HeroAdapter
+    private val heroList = mutableListOf<Hero>()
+
+    private val PUBLIC_KEY = "e5a7bf5a057dbd9bb3d478fc4519e3ec"
+    private val PRIVATE_KEY = "9236c67e8af64cea1a527644d36fbc53dce51520"
+    private val BASE_URL = "https://gateway.marvel.com/v1/public/characters"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        heroImage = findViewById(R.id.heroImage)
-        heroName = findViewById(R.id.heroName)
-        heroDescription = findViewById(R.id.heroDescription)
-        btnFetch = findViewById(R.id.btnFetch)
+        recyclerView = findViewById(R.id.recyclerViewHeroes)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        heroAdapter = HeroAdapter(heroList)
+        recyclerView.adapter = heroAdapter
 
-        btnFetch.setOnClickListener { fetchRandomHero() }
-
-        // Fetch one initially
-        fetchRandomHero()
+        val btnLoadHeroes: Button = findViewById(R.id.btnLoadHeroes)
+        btnLoadHeroes.setOnClickListener { fetchMarvelHeroes() }
     }
 
-    private fun fetchRandomHero() {
+    private fun fetchMarvelHeroes() {
         val ts = System.currentTimeMillis().toString()
-        val hash = md5(ts + PRIVATE_KEY + PUBLIC_KEY)
-        val randomOffset = Random.nextInt(0, 1000)
-
-        val url = "$BASE_URL?limit=1&offset=$randomOffset&ts=$ts&apikey=$PUBLIC_KEY&hash=$hash"
+        val hash = md5("$ts$PRIVATE_KEY$PUBLIC_KEY")
+        val url = "$BASE_URL?ts=$ts&apikey=$PUBLIC_KEY&hash=$hash&limit=10"
 
         val client = AsyncHttpClient()
-        client.get(url, object : JsonHttpResponseHandler() {
-
-            override fun onSuccess(
-                statusCode: Int,
-                headers: Array<Header>?,
-                response: JSONObject?
-            ) {
+        client.get(url, object : AsyncHttpResponseHandler() {
+            override fun onSuccess(statusCode: Int, headers: Array<Header>?, responseBody: ByteArray?) {
+                val responseString = responseBody?.toString(Charsets.UTF_8)
                 try {
-                    val results = response
-                        ?.getJSONObject("data")
-                        ?.getJSONArray("results")
+                    val data = JSONObject(responseString)
+                        .getJSONObject("data")
+                        .getJSONArray("results")
 
-                    if (results != null && results.length() > 0) {
-                        val hero = results.getJSONObject(0)
-                        val name = hero.getString("name")
-                        val description = hero.getString("description")
-                        val thumbnail = hero.getJSONObject("thumbnail")
-                        val imageUrl = "${thumbnail.getString("path")}/standard_fantastic.${thumbnail.getString("extension")}"
+                    heroList.clear()
+                    for (i in 0 until data.length()) {
+                        val item = data.getJSONObject(i)
+                        val name = item.getString("name")
+                        val desc = item.getString("description")
+                        val thumbnail = item.getJSONObject("thumbnail")
+                        val imageUrl = "${thumbnail.getString("path")}.${thumbnail.getString("extension")}"
 
-                        heroName.text = name
-                        heroDescription.text = if (description.isEmpty()) "No description available." else description
-                        Picasso.get().load(imageUrl).into(heroImage)
-                    } else {
-                        heroName.text = getString(R.string.no_hero_found)
-                        heroDescription.text = ""
-                        heroImage.setImageDrawable(null)
+                        heroList.add(Hero(name, desc, imageUrl))
                     }
+
+                    heroAdapter.notifyDataSetChanged()
                 } catch (e: Exception) {
-                    e.printStackTrace()
-                    heroName.text = getString(R.string.parsing_error)
-                    heroDescription.text = e.localizedMessage
+                    Log.e("MarvelAPI", "Parsing error: ${e.message}")
                 }
             }
 
-            override fun onFailure(
-                statusCode: Int,
-                headers: Array<Header>?,
-                throwable: Throwable?,
-                errorResponse: JSONObject?
-            ) {
-                heroName.text = getString(R.string.parsing_error)
-                heroDescription.text = throwable?.localizedMessage
+            override fun onFailure(statusCode: Int, headers: Array<Header>?, responseBody: ByteArray?, error: Throwable?) {
+                Log.e("MarvelAPI", "Request failed: $statusCode ${error?.message}")
             }
         })
     }
 
     private fun md5(input: String): String {
-        return try {
-            val md = MessageDigest.getInstance("MD5")
-            val digest = md.digest(input.toByteArray())
-            val bigInt = BigInteger(1, digest)
-            var hashText = bigInt.toString(16)
-            while (hashText.length < 32) {
-                hashText = "0$hashText"
-            }
-            hashText
-        } catch (e: Exception) {
-            ""
-        }
+        val md = MessageDigest.getInstance("MD5")
+        return BigInteger(1, md.digest(input.toByteArray())).toString(16).padStart(32, '0')
     }
 }

@@ -1,9 +1,12 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="16dp">
+    android:padding="16dp"
+    tools:context=".MainActivity">
+
 
     <ImageView
         android:id="@+id/heroImage"
@@ -26,6 +29,19 @@
         android:layout_height="wrap_content"
         android:paddingTop="4dp"
         android:textSize="16sp" />
+    <Button
+        android:id="@+id/btnLoadHeroes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Load Marvel Heroes"
+        android:layout_gravity="center_horizontal"
+        android:padding="8dp"
+        android:layout_margin="8dp"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewHeroes"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
     <Button
         android:id="@+id/btnFetch"
