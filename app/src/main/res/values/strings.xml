@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Marvel API</string>
+    <string name="btn_fetch">Get Random Hero</string>
+    <string name="hero_image_desc">Marvel hero image</string>
+    <string name="no_hero_found">No hero found.</string>
+    <string name="parsing_error">Parsing error</string>
+</resources>
